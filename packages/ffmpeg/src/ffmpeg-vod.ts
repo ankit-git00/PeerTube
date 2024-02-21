@@ -203,6 +203,8 @@ export class FFmpegVOD {
     const command = this.commandWrapper.getCommand()
 
     const videoPath = this.getHLSVideoPath(options)
+        // console.log("😂😂😂😂😂😂😂😂😂😂🌥️😂😂😂😂😂", videoPath);
+
 
     if (options.copyCodecs) presetCopy(this.commandWrapper)
     else if (options.resolution === VideoResolution.H_NOVIDEO) presetOnlyAudio(this.commandWrapper)
@@ -215,6 +217,7 @@ export class FFmpegVOD {
     const command = this.commandWrapper.getCommand()
 
     const videoPath = this.getHLSVideoPath(options)
+
 
     command.outputOption('-c copy')
 
@@ -232,9 +235,9 @@ export class FFmpegVOD {
                   .outputOption('-hls_list_size 0')
                   .outputOption('-hls_playlist_type vod')
                   .outputOption('-hls_segment_filename ' + outputPath)
-                  .outputOption('-hls_segment_type fmp4')
+                  // .outputOption('-hls_segment_type fmp4')
                   .outputOption('-f hls')
-                  .outputOption('-hls_flags single_file')
+                  // .outputOption('-hls_flags single_file')
   }
 
   private async fixHLSPlaylistIfNeeded (options: TranscodeVODOptions) {
@@ -253,6 +256,12 @@ export class FFmpegVOD {
   }
 
   private getHLSVideoPath (options: HLSTranscodeOptions | HLSFromTSTranscodeOptions) {
+
+    console.log(" 🫚🫚🫚🫚");
+    console.log(options.hlsPlaylist.videoFilename);
+    console.log("options", options);
+
+
     return `${dirname(options.outputPath)}/${options.hlsPlaylist.videoFilename}`
   }
 }

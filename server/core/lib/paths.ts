@@ -13,7 +13,9 @@ function generateWebVideoFilename (resolution: number, extname: string) {
 }
 
 function generateHLSVideoFilename (resolution: number) {
-  return `${buildUUID()}-${resolution}-fragmented.mp4`
+  // return `${buildUUID()}-${resolution}-fragmented.mp4`
+    return `${buildUUID()}-${resolution}-%d.ts`
+
 }
 
 // ################## Streaming playlist ##################
@@ -73,6 +75,8 @@ function getFSTorrentFilePath (videoFile: MVideoFile) {
 }
 
 // ---------------------------------------------------------------------------
+
+
 
 export {
   generateHLSVideoFilename,

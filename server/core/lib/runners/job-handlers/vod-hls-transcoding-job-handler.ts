@@ -21,6 +21,11 @@ import { generateRunnerTranscodingVideoInputFileUrl } from '../runner-urls.js'
 import { AbstractVODTranscodingJobHandler } from './abstract-vod-transcoding-job-handler.js'
 import { loadTranscodingRunnerVideo } from './shared/index.js'
 
+
+import { addExt } from '@peertube/peertube-core-utils'
+import { promises as fsPromises } from 'fs';
+import  path from 'path';
+
 type CreateOptions = {
   video: MVideo
   isNewVideo: boolean
@@ -86,14 +91,20 @@ export class VODHLSTranscodingJobHandler extends AbstractVODTranscodingJobHandle
 
     const videoFile = await buildNewFile({ path: videoFilePath, mode: 'hls' })
     const newVideoFilePath = join(dirname(videoFilePath), videoFile.filename)
-    await move(videoFilePath, newVideoFilePath)
+//     await move(videoFilePath, newVideoFilePath)
 
+    console.log("🏐️🏐️🏐️🏐️🏐️", videoFilePath, newVideoFilePath);
+    // what is the name of the new temp directory
+
+        moveFiles(videoFilePath, newVideoFilePath);
     const resolutionPlaylistFilename = getHlsResolutionPlaylistFilename(videoFile.filename)
     const newResolutionPlaylistFilePath = join(dirname(resolutionPlaylistFilePath), resolutionPlaylistFilename)
     await move(resolutionPlaylistFilePath, newResolutionPlaylistFilePath)
 
     await renameVideoFileInPlaylist(newResolutionPlaylistFilePath, videoFile.filename)
 
+
+//     console.log("🥛🥛🥛🥛🥛🥛",video, videoFile)
     await onHLSVideoFileTranscoding({
       video,
       videoFile,
@@ -109,6 +120,36 @@ export class VODHLSTranscodingJobHandler extends AbstractVODTranscodingJobHandle
       await removeAllWebVideoFiles(video)
     }
 
+
     logger.info('Runner VOD HLS job %s for %s ended.', runnerJob.uuid, video.uuid, this.lTags(runnerJob.uuid, video.uuid))
   }
+}
+
+
+
+
+async function moveFiles(outputPath: string , filePath: string){
+  let i = 0;
+  let filesMoved = 0;
+
+  // Iterate over the range of file names
+  while (true) {
+
+
+      const sourceFilePath =  addExt(outputPath, i);
+      const desinationFielPath = addExt(filePath, i);
+      try {
+          await fsPromises.access(sourceFilePath);
+
+          await move(sourceFilePath, desinationFielPath);
+          filesMoved++;
+
+          i++;
+      } catch (error) {
+          break;
+      }
+  }
+
+  return filesMoved;
+
 }

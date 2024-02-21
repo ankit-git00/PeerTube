@@ -17,6 +17,7 @@ import { buildUUID } from '@peertube/peertube-node-utils'
 import { makeHLSFileAvailable, makeWebVideoFileAvailable } from './object-storage/index.js'
 import { getHLSDirectory, getHLSRedundancyDirectory, getHlsResolutionPlaylistFilename } from './paths.js'
 import { isVideoInPrivateDirectory } from './video-privacy.js'
+import { removeExt2 } from '@peertube/peertube-core-utils'
 
 type MakeAvailableCB <T> = (path: string) => Promise<T> | T
 
@@ -91,7 +92,10 @@ class VideoPathManager {
   }
 
   async makeAvailableResolutionPlaylistFile <T> (videoFile: MVideoFileStreamingPlaylistVideo, cb: MakeAvailableCB<T>) {
-    const filename = getHlsResolutionPlaylistFilename(videoFile.filename)
+    console.log("🫖🫖🫖🫖🫖🫖🫖🫖", videoFile.filename);
+    let filename = getHlsResolutionPlaylistFilename(videoFile.filename)
+
+    filename = removeExt2(filename);
 
     if (videoFile.storage === VideoStorage.FILE_SYSTEM) {
       return this.makeAvailableFactory(
@@ -150,7 +154,7 @@ class VideoPathManager {
     let result: T
 
     const destination = await method()
-
+    console.log("🧁🧁🧁🧁🧁🧁", destination);
     try {
       result = await cb(destination)
     } catch (err) {

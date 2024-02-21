@@ -124,6 +124,8 @@ async function handleHLSJob (job: Job, payload: HLSTranscodingPayload, videoArg:
     const videoOrStreamingPlaylist = videoFileInput.getVideoOrStreamingPlaylist()
 
     await VideoPathManager.Instance.makeAvailableVideoFile(videoFileInput.withVideoOrPlaylist(videoOrStreamingPlaylist), videoInputPath => {
+
+      
       return generateHlsPlaylistResolution({
         video,
         videoInputPath,

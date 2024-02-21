@@ -7,7 +7,8 @@ export async function getVideoStreamCodec (path: string) {
   const videoStream = await getVideoStream(path)
   if (!videoStream) return ''
 
-  const videoCodec = videoStream.codec_tag_string
+  let videoCodec = videoStream.codec_tag_string
+  console.log("🥕🥕🥕🥕🥕🥕🥕",videoStream,videoCodec )
 
   if (videoCodec === 'vp09') return 'vp09.00.50.08'
   if (videoCodec === 'hev1') return 'hev1.1.6.L93.B0'
@@ -25,7 +26,10 @@ export async function getVideoStreamCodec (path: string) {
     }
   }
 
+  /* added */ videoCodec = "avc1";
   let baseProfile = baseProfileMatrix[videoCodec][videoStream.profile]
+
+ 
   if (!baseProfile) {
     logger.warn('Cannot get video profile codec of %s.', path, { videoStream })
     baseProfile = baseProfileMatrix[videoCodec]['High'] // Fallback

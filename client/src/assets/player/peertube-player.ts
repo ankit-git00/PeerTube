@@ -96,6 +96,7 @@ export class PeerTubePlayer {
     if (this.currentLoadOptions.mode === 'p2p-media-loader') {
       await this.loadP2PMediaLoader()
     } else {
+
       this.loadWebVideo()
     }
 

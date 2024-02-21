@@ -3,7 +3,7 @@ import { Job } from 'bullmq'
 import { ensureDir, move } from 'fs-extra/esm'
 import { stat } from 'fs/promises'
 import { basename, extname as extnameUtil, join } from 'path'
-import { pick } from '@peertube/peertube-core-utils'
+import { addExt2, addExt3, pick } from '@peertube/peertube-core-utils'
 import { retryTransactionWrapper } from '@server/helpers/database-utils.js'
 import { createTorrentAndSetInfoHash } from '@server/helpers/webtorrent.js'
 import { sequelizeTypescript } from '@server/initializers/database.js'
@@ -17,6 +17,11 @@ import { generateHLSVideoFilename, getHlsResolutionPlaylistFilename } from '../p
 import { buildFileMetadata } from '../video-file.js'
 import { VideoPathManager } from '../video-path-manager.js'
 import { buildFFmpegVOD } from './shared/index.js'
+
+import { addExt } from '@peertube/peertube-core-utils'
+
+import { promises as fsPromises } from 'fs';
+import  path from 'path';
 
 // Concat TS segments from a live video to a fragmented mp4 HLS playlist
 export async function generateHlsPlaylistResolutionFromTS (options: {
@@ -62,6 +67,7 @@ export async function onHLSVideoFileTranscoding (options: {
 }) {
   const { video, videoFile, videoOutputPath, m3u8OutputPath, filesLockedInParent = false } = options
 
+  // console.log("videoe",video);
   // Create or update the playlist
   const playlist = await retryTransactionWrapper(() => {
     return sequelizeTypescript.transaction(async transaction => {
@@ -77,14 +83,25 @@ export async function onHLSVideoFileTranscoding (options: {
   try {
     await video.reload()
 
-    const videoFilePath = VideoPathManager.Instance.getFSVideoFileOutputPath(playlist, videoFile)
+  let videoFilePath = VideoPathManager.Instance.getFSVideoFileOutputPath(playlist, videoFile)
     await ensureDir(VideoPathManager.Instance.getFSHLSOutputPath(video))
 
     // Move playlist file
     const resolutionPlaylistPath = VideoPathManager.Instance.getFSHLSOutputPath(video, basename(m3u8OutputPath))
     await move(m3u8OutputPath, resolutionPlaylistPath, { overwrite: true })
     // Move video file
-    await move(videoOutputPath, videoFilePath, { overwrite: true })
+
+        console.log("😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂",  videoOutputPath, videoFilePath);
+      let numberOfFiles : number;
+      await moveFiles(videoOutputPath, videoFilePath).then((filesMoved) => numberOfFiles = filesMoved); // added code
+      console.log("🍸🍸🍸🍸🍸🍸🍸", numberOfFiles);
+      videoFilePath = addExt(videoFilePath, 0);
+      // console.log(addExt(videoFilePath));
+
+
+      // const outputPath = addExt(videoOutputPath, 0);
+  // await move(outputPath, videoFilePath, { overwrite: true })
+
 
     // Update video duration if it was not set (in case of a live for example)
     if (!video.duration) {
@@ -92,13 +109,31 @@ export async function onHLSVideoFileTranscoding (options: {
       await video.save()
     }
 
-    const stats = await stat(videoFilePath)
 
+    console.log("🍸🍸🍸🍸🍸", videoFilePath);
+    const stats = await stat(videoFilePath)
+    console.log("🍸🍸🍸🍸🍸🍸", stats);
     videoFile.size = stats.size
     videoFile.fps = await getVideoStreamFPS(videoFilePath)
     videoFile.metadata = await buildFileMetadata(videoFilePath)
 
-    await createTorrentAndSetInfoHash(playlist, videoFile)
+    videoFile.filename = addExt(videoFile.filename, 0); // changed
+
+    // videofile will be an arry and we will have to create torrent for each segment.
+    // let i=0;
+    // let tempVideoFile = videoFile
+    // let base = videoFile.filename;
+    // while(i<numberOfFiles){
+
+    //   tempVideoFile.filename = addExt3(base, i)
+    //   console.log("🍯🍯🍯🍯🍯",tempVideoFile.filename, videoFile.filename);
+    //   await createTorrentAndSetInfoHash(playlist, tempVideoFile);
+    //   i++;
+
+    // }
+
+         await createTorrentAndSetInfoHash(playlist, videoFile);
+
 
     const oldFile = await VideoFileModel.loadHLSFile({
       playlistId: playlist.id,
@@ -112,8 +147,15 @@ export async function onHLSVideoFileTranscoding (options: {
     }
 
     const savedVideoFile = await VideoFileModel.customUpsert(videoFile, 'streaming-playlist', undefined)
+    // console.log(savedVideoFile);
+
+    // console.log("😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂", video);
+    // console.log("😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂", playlist);
+
 
     await updatePlaylistAfterFileChange(video, playlist)
+
+
 
     return { resolutionPlaylistPath, videoFile: savedVideoFile }
   } finally {
@@ -141,13 +183,17 @@ async function generateHlsPlaylistCommon (options: {
   const { type, video, inputPath, resolution, fps, copyCodecs, isAAC, job, inputFileMutexReleaser } = options
   const transcodeDirectory = CONFIG.STORAGE.TMP_DIR
 
+  // console.log("job", job);
   const videoTranscodedBasePath = join(transcodeDirectory, type)
   await ensureDir(videoTranscodedBasePath)
 
   const videoFilename = generateHLSVideoFilename(resolution)
+
+
   const videoOutputPath = join(videoTranscodedBasePath, videoFilename)
 
   const resolutionPlaylistFilename = getHlsResolutionPlaylistFilename(videoFilename)
+  console.log(" 🍕🍕🍕🍕🍕🍕🍕",videoFilename, resolutionPlaylistFilename);
   const m3u8OutputPath = join(videoTranscodedBasePath, resolutionPlaylistFilename)
 
   const transcodeOptions = {
@@ -169,6 +215,9 @@ async function generateHlsPlaylistCommon (options: {
     }
   }
 
+
+
+
   await buildFFmpegVOD(job).transcode(transcodeOptions)
 
   const newVideoFile = new VideoFileModel({
@@ -187,3 +236,40 @@ async function generateHlsPlaylistCommon (options: {
     filesLockedInParent: !inputFileMutexReleaser
   })
 }
+
+
+
+
+async function moveFiles(outputPath: string , filePath: string){
+  let i = 0;
+  let filesMoved = 0;
+
+  // Iterate over the range of file names
+  while (true) {
+
+
+      const sourceFilePath =  addExt(outputPath, i);
+      const desinationFielPath = addExt(filePath, i);
+      try {
+          await fsPromises.access(sourceFilePath);
+
+          await move(sourceFilePath, desinationFielPath);
+          filesMoved++;
+
+          i++;
+      } catch (error) {
+          break;
+      }
+  }
+
+  return filesMoved;
+
+}
+
+
+// function forEachSegment(numberOfFiles: number, cb:any, ){
+
+//   while(numberOfFiles--){
+//    await cb()
+//   }
+// }

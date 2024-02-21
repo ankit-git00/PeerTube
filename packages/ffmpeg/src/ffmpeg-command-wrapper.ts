@@ -108,7 +108,10 @@ export class FFmpegCommandWrapper {
     return new Promise<void>((res, rej) => {
       let shellCommand: string
 
-      this.command.on('start', cmdline => { shellCommand = cmdline })
+      this.command.on('start', (cmdline) => {
+        shellCommand = cmdline;
+            console.log('FFmpeg command started:', cmdline);
+      });
 
       this.command.on('error', (err, stdout, stderr) => {
         if (silent !== true) this.logger.error('Error in ffmpeg.', { stdout, stderr, shellCommand, ...this.lTags })

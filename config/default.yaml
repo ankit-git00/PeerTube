@@ -13,7 +13,7 @@ webserver:
 # Secrets you need to generate the first time you run PeerTube
 secrets:
   # Generate one using `openssl rand -hex 32`
-  peertube: ''
+  peertube: '8a334eb3b05f6a03714ae4f6d82d57513f694ccc19f96a9ff9ae4b89d24eb26e'
 
 rates_limit:
   api:

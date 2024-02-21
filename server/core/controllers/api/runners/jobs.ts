@@ -57,6 +57,7 @@ const postRunnerJobSuccessVideoFiles = createReqFiles(
   { ...MIMETYPES.VIDEO.MIMETYPE_EXT, ...MIMETYPES.M3U8.MIMETYPE_EXT }
 )
 
+
 const runnerJobUpdateVideoFiles = createReqFiles(
   [ 'payload[videoChunkFile]', 'payload[resolutionPlaylistFile]', 'payload[masterPlaylistFile]' ],
   { ...MIMETYPES.VIDEO.MIMETYPE_EXT, ...MIMETYPES.M3U8.MIMETYPE_EXT }
@@ -100,18 +101,27 @@ runnerJobsRouter.post('/jobs/:jobUUID/update',
 )
 
 runnerJobsRouter.post('/jobs/:jobUUID/error',
+(req, res, next) => {
+    console.log("📡📡📡📡📡 POST request received at /jobs/:jobUUID/success");
+    next(); // Call next to proceed to the next middleware or route handler
+  },
   asyncMiddleware(jobOfRunnerGetValidatorFactory([ RunnerJobState.PROCESSING ])),
   errorRunnerJobValidator,
   asyncMiddleware(errorRunnerJob)
 )
 
-runnerJobsRouter.post('/jobs/:jobUUID/success',
+runnerJobsRouter.post(
+  '/jobs/:jobUUID/success',
+  (req, res, next) => {
+    console.log("🔫🔫🔫🔫 POST request received at /jobs/:jobUUID/success", req.body);
+    next(); // Call next to proceed to the next middleware or route handler
+  },
   postRunnerJobSuccessVideoFiles,
   apiRateLimiter, // Has to be after multer middleware to parse runner token
   asyncMiddleware(jobOfRunnerGetValidatorFactory([ RunnerJobState.PROCESSING ])),
   successRunnerJobValidator,
   asyncMiddleware(postRunnerJobSuccess)
-)
+);
 
 // ---------------------------------------------------------------------------
 // Controllers for admins

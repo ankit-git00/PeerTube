@@ -1,4 +1,4 @@
-import { uniqify, uuidRegex } from '@peertube/peertube-core-utils'
+import { addExt, addExt2, uniqify, uuidRegex } from '@peertube/peertube-core-utils'
 import { getVideoStreamDimensionsInfo } from '@peertube/peertube-ffmpeg'
 import { VideoStorage } from '@peertube/peertube-models'
 import { sha256 } from '@peertube/peertube-node-utils'
@@ -21,6 +21,10 @@ import { storeHLSFileFromFilename } from './object-storage/index.js'
 import { generateHLSMasterPlaylistFilename, generateHlsSha256SegmentsFilename, getHlsResolutionPlaylistFilename } from './paths.js'
 import { VideoPathManager } from './video-path-manager.js'
 
+
+import { removeExt2 } from '@peertube/peertube-core-utils';
+import { filesRouter } from '@server/controllers/api/videos/files.js'
+
 const lTags = loggerTagsFactory('hls')
 
 async function updateStreamingPlaylistsInfohashesIfNeeded () {
@@ -40,8 +44,12 @@ async function updateStreamingPlaylistsInfohashesIfNeeded () {
 }
 
 async function updatePlaylistAfterFileChange (video: MVideo, playlist: MStreamingPlaylist) {
+  console.log("🧅🧅🧅🧅🧅🧅", playlist);
   try {
     let playlistWithFiles = await updateMasterHLSPlaylist(video, playlist)
+
+    console.log("🧀🧀🧀🧀🧀🧀🧀", playlistWithFiles);
+
     playlistWithFiles = await updateSha256VODSegments(video, playlist)
 
     // Refresh playlist, operations can take some time
@@ -61,15 +69,83 @@ async function updatePlaylistAfterFileChange (video: MVideo, playlist: MStreamin
 const playlistFilesQueue = new PQueue({ concurrency: 1 })
 
 function updateMasterHLSPlaylist (video: MVideo, playlistArg: MStreamingPlaylist): Promise<MStreamingPlaylistFilesVideo> {
+
+    console.log("🧅🧅🧅🧅🧅🧅", playlistArg.id);
+
+  // async function get() {
+  //   const playlist = await VideoStreamingPlaylistModel.loadWithVideoAndFiles(playlistArg.id)
+  //   console.log("🫒", playlist);
+
+  // }
+
+  // get()
+
+  // async function temp() {
+  //   const playlist = await VideoStreamingPlaylistModel.loadWithVideoAndFiles(playlistArg.id)
+
+  //   console.log("🧀🧀🧀🧀🧀🧀", playlist);
+  //   const masterPlaylists: string[] = [ '#EXTM3U', '#EXT-X-VERSION:3' ]
+
+  //   for (const file of playlist.VideoFiles) {
+  //     const playlistFilename = getHlsResolutionPlaylistFilename(file.filename)
+
+  //     await VideoPathManager.Instance.makeAvailableVideoFile(file.withVideoOrPlaylist(playlist), async videoFilePath => {
+  //       const size = await getVideoStreamDimensionsInfo(videoFilePath)
+
+  //       const bandwidth = 'BANDWIDTH=' + video.getBandwidthBits(file)
+  //       const resolution = `RESOLUTION=${size?.width || 0}x${size?.height || 0}`
+
+  //       let line = `#EXT-X-STREAM-INF:${bandwidth},${resolution}`
+  //       if (file.fps) line += ',FRAME-RATE=' + file.fps
+
+
+  //       console.log(videoFilePath, "🧀🧀🧀🧀🧀🧀");
+  //       const codecs = await Promise.all([
+  //         getVideoStreamCodec(videoFilePath),
+  //         getAudioStreamCodec(videoFilePath)
+  //       ])
+
+  //       line += `,CODECS="${codecs.filter(c => !!c).join(',')}"`
+
+  //       masterPlaylists.push(line)
+  //       masterPlaylists.push(playlistFilename)
+  //     })
+  //   }
+
+  //   if (playlist.playlistFilename) {
+  //     await video.removeStreamingPlaylistFile(playlist, playlist.playlistFilename)
+  //   }
+  //   playlist.playlistFilename = generateHLSMasterPlaylistFilename(video.isLive)
+
+  //   const masterPlaylistPath = VideoPathManager.Instance.getFSHLSOutputPath(video, playlist.playlistFilename)
+  //   await writeFile(masterPlaylistPath, masterPlaylists.join('\n') + '\n')
+
+  //   logger.info('Updating %s master playlist file of video %s', masterPlaylistPath, video.uuid, lTags(video.uuid))
+
+  //   if (playlist.storage === VideoStorage.OBJECT_STORAGE) {
+  //     playlist.playlistUrl = await storeHLSFileFromFilename(playlist, playlist.playlistFilename)
+  //     await remove(masterPlaylistPath)
+  //   }
+
+  //   return playlist.save()
+  // }
+
+
+
+  // temp();
+
+
   return playlistFilesQueue.add(async () => {
     const playlist = await VideoStreamingPlaylistModel.loadWithVideoAndFiles(playlistArg.id)
 
     const masterPlaylists: string[] = [ '#EXTM3U', '#EXT-X-VERSION:3' ]
 
     for (const file of playlist.VideoFiles) {
-      const playlistFilename = getHlsResolutionPlaylistFilename(file.filename)
 
-      await VideoPathManager.Instance.makeAvailableVideoFile(file.withVideoOrPlaylist(playlist), async videoFilePath => {
+      let playlistFilename = getHlsResolutionPlaylistFilename(file.filename)
+
+
+      await VideoPathManager.Instance.makeAvailableVideoFile(file.withVideoOrPlaylist(playlist), async (videoFilePath) => {
         const size = await getVideoStreamDimensionsInfo(videoFilePath)
 
         const bandwidth = 'BANDWIDTH=' + video.getBandwidthBits(file)
@@ -86,6 +162,10 @@ function updateMasterHLSPlaylist (video: MVideo, playlistArg: MStreamingPlaylist
         line += `,CODECS="${codecs.filter(c => !!c).join(',')}"`
 
         masterPlaylists.push(line)
+
+        /* modified */ playlistFilename = removeExt2(playlistFilename);
+
+        console.log("🥚🥚🥚🥚",playlistFilename);
         masterPlaylists.push(playlistFilename)
       })
     }
@@ -112,52 +192,133 @@ function updateMasterHLSPlaylist (video: MVideo, playlistArg: MStreamingPlaylist
 // ---------------------------------------------------------------------------
 
 function updateSha256VODSegments (video: MVideo, playlistArg: MStreamingPlaylist): Promise<MStreamingPlaylistFilesVideo> {
-  return playlistFilesQueue.add(async () => {
-    const json: { [filename: string]: { [range: string]: string } } = {}
 
-    const playlist = await VideoStreamingPlaylistModel.loadWithVideoAndFiles(playlistArg.id)
+  return playlistFilesQueue.add(async () =>
+    {
+      const json: { [filename: string]: { [range: string]: string } } = {}
+      let json2: {[filename: string] : string} = {}
 
-    // For all the resolutions available for this video
-    for (const file of playlist.VideoFiles) {
+      const playlist = await VideoStreamingPlaylistModel.loadWithVideoAndFiles(playlistArg.id)
+
+      console.log("🍟🍟🍟🍟🍟🍟", playlist);
+      console.log("🍟🍟🍟🍟🍟🍟", playlist.VideoFiles);
+
       const rangeHashes: { [range: string]: string } = {}
-      const fileWithPlaylist = file.withVideoOrPlaylist(playlist)
+      // For all the resolutions available for this video
+      for (const file of playlist.VideoFiles) {
+        console.log("🍟🍟🍟🍟🍟🍟", file);
+        const fileWithPlaylist = file.withVideoOrPlaylist(playlist)
 
-      await VideoPathManager.Instance.makeAvailableVideoFile(fileWithPlaylist, videoPath => {
+        console.log("🍟🍟🍟🍟🍟🍟",fileWithPlaylist)
 
-        return VideoPathManager.Instance.makeAvailableResolutionPlaylistFile(fileWithPlaylist, async resolutionPlaylistPath => {
-          const playlistContent = await readFile(resolutionPlaylistPath)
-          const ranges = getRangesFromPlaylist(playlistContent.toString())
+        await VideoPathManager.Instance.makeAvailableVideoFile(fileWithPlaylist, videoPath => {
 
-          const fd = await open(videoPath, 'r')
-          for (const range of ranges) {
-            const buf = Buffer.alloc(range.length)
-            await fd.read(buf, 0, range.length, range.offset)
+          return VideoPathManager.Instance.makeAvailableResolutionPlaylistFile(fileWithPlaylist, async resolutionPlaylistPath => {
+            const playlistContent = await readFile(resolutionPlaylistPath)
+            const ranges = getRangesFromPlaylist(playlistContent.toString())
 
-            rangeHashes[`${range.offset}-${range.offset + range.length - 1}`] = sha256(buf)
-          }
-          await fd.close()
+            console.log("🍼🍼🍼🍼🍼", videoPath);
+            // const fd = await open(videoPath, 'r')
+            // for (const range of ranges) {
+            //   const buf = Buffer.alloc(range.length)
+            //   await fd.read(buf, 0, range.length, range.offset)
 
-          const videoFilename = file.filename
-          json[videoFilename] = rangeHashes
+            //   rangeHashes[`${range.offset}-${range.offset + range.length - 1}`] = sha256(buf)
+            // }
+            // await fd.close()
+
+            const fileNames = getFileNamesFromPlaylist(playlistContent.toString());
+            let i = 0;
+            for (const fileName of fileNames) {
+                let fd = await open(addExt2(videoPath, i));
+                let fileStats = await fd.stat();
+                let buf = Buffer.alloc(fileStats.size); // Allocate buffer with the size of the file
+
+                await fd.read(buf, 0, fileStats.size, 0); // Read the entire file into the buffer
+
+                // Calculate the SHA256 hash for the entire file
+                const hash = sha256(buf);
+
+                // Store the hash in rangeHashes with the filename as the key
+                rangeHashes[fileName] = hash;
+                i++;
+                await fd.close();
+            }
+            console.log("🥎🥎🥎🥎🥎", rangeHashes);
+          })
         })
-      })
-    }
+      }
+      json2 = rangeHashes;
+      console.log("🎽🎽🎽🎽", json2);
 
-    if (playlist.segmentsSha256Filename) {
-      await video.removeStreamingPlaylistFile(playlist, playlist.segmentsSha256Filename)
-    }
-    playlist.segmentsSha256Filename = generateHlsSha256SegmentsFilename(video.isLive)
+      if (playlist.segmentsSha256Filename) {
+        await video.removeStreamingPlaylistFile(playlist, playlist.segmentsSha256Filename)
+      }
+      playlist.segmentsSha256Filename = generateHlsSha256SegmentsFilename(video.isLive)
 
-    const outputPath = VideoPathManager.Instance.getFSHLSOutputPath(video, playlist.segmentsSha256Filename)
-    await outputJSON(outputPath, json)
+      const outputPath = VideoPathManager.Instance.getFSHLSOutputPath(video, playlist.segmentsSha256Filename)
+      await outputJSON(outputPath, json2)
 
-    if (playlist.storage === VideoStorage.OBJECT_STORAGE) {
-      playlist.segmentsSha256Url = await storeHLSFileFromFilename(playlist, playlist.segmentsSha256Filename)
-      await remove(outputPath)
-    }
+      if (playlist.storage === VideoStorage.OBJECT_STORAGE) {
+        playlist.segmentsSha256Url = await storeHLSFileFromFilename(playlist, playlist.segmentsSha256Filename)
+        await remove(outputPath)
+      }
 
-    return playlist.save()
-  }, { throwOnTimeout: true })
+      return playlist.save()
+    }, { throwOnTimeout: true })
+
+
+
+
+//   return playlistFilesQueue.add(async () => {
+//     const json: { [filename: string]: { [range: string]: string } } = {}
+
+//     const json2: {[filename: string] : string} = {}
+
+//     const playlist = await VideoStreamingPlaylistModel.loadWithVideoAndFiles(playlistArg.id)
+
+//     // For all the resolutions available for this video
+//     for (const file of playlist.VideoFiles) {
+//       const rangeHashes: { [range: string]: string } = {}
+//       const fileWithPlaylist = file.withVideoOrPlaylist(playlist)
+
+//       await VideoPathManager.Instance.makeAvailableVideoFile(fileWithPlaylist, videoPath => {
+
+//         return VideoPathManager.Instance.makeAvailableResolutionPlaylistFile(fileWithPlaylist, async resolutionPlaylistPath => {
+//           const playlistContent = await readFile(resolutionPlaylistPath)
+//           const ranges = getRangesFromPlaylist(playlistContent.toString())
+
+//           const fd = await open(videoPath, 'r')
+//           for (const range of ranges) {
+//             const buf = Buffer.alloc(range.length)
+//             await fd.read(buf, 0, range.length, range.offset)
+
+//             rangeHashes[`${range.offset}-${range.offset + range.length - 1}`] = sha256(buf)
+//           }
+//           await fd.close()
+
+//           const videoFilename = file.filename
+//           json[videoFilename] = rangeHashes
+//         })
+//       })
+//     }
+
+//     if (playlist.segmentsSha256Filename) {
+//       await video.removeStreamingPlaylistFile(playlist, playlist.segmentsSha256Filename)
+//     }
+//     playlist.segmentsSha256Filename = generateHlsSha256SegmentsFilename(video.isLive)
+
+//     const outputPath = VideoPathManager.Instance.getFSHLSOutputPath(video, playlist.segmentsSha256Filename)
+//     await outputJSON(outputPath, json)
+
+//     if (playlist.storage === VideoStorage.OBJECT_STORAGE) {
+//       playlist.segmentsSha256Url = await storeHLSFileFromFilename(playlist, playlist.segmentsSha256Filename)
+//       await remove(outputPath)
+//     }
+
+//     return playlist.save()
+//   }, { throwOnTimeout: true })
+
 }
 
 // ---------------------------------------------------------------------------
@@ -243,7 +404,18 @@ function downloadPlaylistSegments (playlistUrl: string, destinationDir: string, 
 async function renameVideoFileInPlaylist (playlistPath: string, newVideoFilename: string) {
   const content = await readFile(playlistPath, 'utf8')
 
-  const newContent = content.replace(new RegExp(`${uuidRegex}-\\d+-fragmented.mp4`, 'g'), newVideoFilename)
+
+
+const match = newVideoFilename.match(uuidRegex);
+const uuidPart = match ? match[0] : null;
+
+
+console.log("❤️‍🔥❤️‍🔥❤️‍🔥❤️‍🔥", newVideoFilename, uuidPart);
+
+
+
+//   const newContent = content.replace(new RegExp(`${uuidRegex}-\\d+-fragmented.mp4`, 'g'), newVideoFilename)
+const newContent = content.replace(new RegExp(`${uuidRegex}`, 'g'), uuidPart);
 
   await writeFile(playlistPath, newContent, 'utf8')
 }
@@ -283,4 +455,22 @@ function getRangesFromPlaylist (playlistContent: string) {
   }
 
   return ranges
+}
+
+
+function getFileNamesFromPlaylist(playlistContent : String){
+    const fileNames : string[] = []
+
+    const lines= playlistContent.split('\n');
+    const regex = /^(.+\.ts)$/gm
+
+    for(const line of lines){
+      const captured = regex.exec(line);
+
+      if(captured){
+        fileNames.push(captured[0]);
+      }
+    }
+
+    return fileNames;
 }

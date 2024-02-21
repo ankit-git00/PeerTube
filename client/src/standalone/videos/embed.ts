@@ -117,7 +117,7 @@ export class PeerTubeEmbed {
 
     try {
       const res = await this.playlistFetcher.loadPlaylist(playlistId)
-
+      console.log("🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑");
       const [ playlist, playlistElementResult ] = await Promise.all([
         res.playlistResponse.json() as Promise<VideoPlaylist>,
         res.videosResponse.json() as Promise<ResultList<VideoPlaylistElement>>

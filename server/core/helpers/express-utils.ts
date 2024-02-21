@@ -81,6 +81,7 @@ function createReqFiles (
     })
   }
 
+  console.log("🔍🔍🔍🔍", storage);
   return multer({ storage }).fields(fields)
 }
 

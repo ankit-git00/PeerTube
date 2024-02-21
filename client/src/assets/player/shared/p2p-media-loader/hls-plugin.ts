@@ -30,6 +30,7 @@ const registerSourceHandler = function (vjs: typeof videojs) {
 
   const html5 = vjs.getTech('Html5')
 
+
   if (!html5) {
     logger.error('No "Html5" tech found in videojs')
     return

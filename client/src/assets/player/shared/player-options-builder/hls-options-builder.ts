@@ -26,6 +26,10 @@ export class HLSOptionsBuilder {
 
   async getPluginOptions () {
     const redundancyUrlManager = new RedundancyUrlManager(this.options.hls.redundancyBaseUrls)
+              console.log("🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑", "basket");
+
+
+        // new object of segmentValidator class
     const segmentValidator = new SegmentValidator({
       segmentsSha256Url: this.options.hls.segmentsSha256Url,
       authorizationHeader: this.options.authorizationHeader,

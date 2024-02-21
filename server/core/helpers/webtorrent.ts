@@ -138,6 +138,7 @@ async function createTorrentAndSetInfoHashFromPath (
   videoFile.torrentFilename = torrentFilename
 }
 
+
 async function updateTorrentMetadata (videoOrPlaylist: MVideo | MStreamingPlaylistVideo, videoFile: MVideoFile) {
   const video = extractVideo(videoOrPlaylist)
 
