@@ -61,8 +61,9 @@ function getHostWithPort (host: string) {
 function createReqFiles (
   fieldNames: string[],
   mimeTypes: { [id: string]: string | string[] },
-  destination = CONFIG.STORAGE.TMP_DIR
-): RequestHandler {
+  destination = CONFIG.STORAGE.TMP_DIR):  RequestHandler
+
+  {
   const storage = diskStorage({
     destination: (req, file, cb) => {
       cb(null, destination)
@@ -75,13 +76,14 @@ function createReqFiles (
 
   const fields: { name: string, maxCount: number }[] = []
   for (const fieldName of fieldNames) {
+
+
     fields.push({
       name: fieldName,
-      maxCount: 1
+      maxCount: 100000000
     })
   }
 
-  console.log("🔍🔍🔍🔍", storage);
   return multer({ storage }).fields(fields)
 }
 

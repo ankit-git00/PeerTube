@@ -77,7 +77,6 @@ async function getMaxQualityVideoFile (req: express.Request, res: express.Respon
     })
   }
 
-  console.log("🥤🥤🥤🥤🥤🥤",file);
   return VideoPathManager.Instance.makeAvailableVideoFile(file, videoPath => {
     return res.sendFile(videoPath)
   })

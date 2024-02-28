@@ -92,7 +92,6 @@ class VideoPathManager {
   }
 
   async makeAvailableResolutionPlaylistFile <T> (videoFile: MVideoFileStreamingPlaylistVideo, cb: MakeAvailableCB<T>) {
-    console.log("🫖🫖🫖🫖🫖🫖🫖🫖", videoFile.filename);
     let filename = getHlsResolutionPlaylistFilename(videoFile.filename)
 
     filename = removeExt2(filename);
@@ -154,7 +153,6 @@ class VideoPathManager {
     let result: T
 
     const destination = await method()
-    console.log("🧁🧁🧁🧁🧁🧁", destination);
     try {
       result = await cb(destination)
     } catch (err) {

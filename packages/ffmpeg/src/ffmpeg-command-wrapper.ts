@@ -110,7 +110,6 @@ export class FFmpegCommandWrapper {
 
       this.command.on('start', (cmdline) => {
         shellCommand = cmdline;
-            console.log('FFmpeg command started:', cmdline);
       });
 
       this.command.on('error', (err, stdout, stderr) => {

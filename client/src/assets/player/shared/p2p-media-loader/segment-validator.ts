@@ -13,7 +13,7 @@ export class SegmentValidator {
 
   private readonly bytesRangeRegex = /bytes=(\d+)-(\d+)/
 
-  private destroyed = true
+  private destroyed = false
 
   private segmentJSONPromise: Promise<SegmentsJSON>
 

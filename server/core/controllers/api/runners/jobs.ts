@@ -101,10 +101,6 @@ runnerJobsRouter.post('/jobs/:jobUUID/update',
 )
 
 runnerJobsRouter.post('/jobs/:jobUUID/error',
-(req, res, next) => {
-    console.log("📡📡📡📡📡 POST request received at /jobs/:jobUUID/success");
-    next(); // Call next to proceed to the next middleware or route handler
-  },
   asyncMiddleware(jobOfRunnerGetValidatorFactory([ RunnerJobState.PROCESSING ])),
   errorRunnerJobValidator,
   asyncMiddleware(errorRunnerJob)
@@ -112,10 +108,6 @@ runnerJobsRouter.post('/jobs/:jobUUID/error',
 
 runnerJobsRouter.post(
   '/jobs/:jobUUID/success',
-  (req, res, next) => {
-    console.log("🔫🔫🔫🔫 POST request received at /jobs/:jobUUID/success", req.body);
-    next(); // Call next to proceed to the next middleware or route handler
-  },
   postRunnerJobSuccessVideoFiles,
   apiRateLimiter, // Has to be after multer middleware to parse runner token
   asyncMiddleware(jobOfRunnerGetValidatorFactory([ RunnerJobState.PROCESSING ])),
@@ -331,10 +323,19 @@ const jobSuccessPayloadBuilders: {
   },
 
   'vod-hls-transcoding': (payload: VODHLSTranscodingSuccess, files) => {
+
+
+  let videoFile=[]
+   for(let file of files['payload[videoFile]']){
+       videoFile.push(file.path)
+      }
+
     return {
       ...payload,
 
-      videoFile: files['payload[videoFile]'][0].path,
+
+      videoFile,
+//       videoFile: files['payload[videoFile]'][0].path,
       resolutionPlaylistFile: files['payload[resolutionPlaylistFile]'][0].path
     }
   },

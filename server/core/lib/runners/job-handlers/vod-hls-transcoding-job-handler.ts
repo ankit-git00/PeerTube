@@ -7,7 +7,7 @@ import { onTranscodingEnded } from '@server/lib/transcoding/ended-transcoding.js
 import { onHLSVideoFileTranscoding } from '@server/lib/transcoding/hls-transcoding.js'
 import { buildNewFile, removeAllWebVideoFiles } from '@server/lib/video-file.js'
 import { VideoJobInfoModel } from '@server/models/video/video-job-info.js'
-import { MVideo } from '@server/types/models/index.js'
+import { MVideo, MVideoFile } from '@server/types/models/index.js'
 import { MRunnerJob } from '@server/types/models/runners/index.js'
 import { pick } from '@peertube/peertube-core-utils'
 import { buildUUID } from '@peertube/peertube-node-utils'
@@ -80,36 +80,42 @@ export class VODHLSTranscodingJobHandler extends AbstractVODTranscodingJobHandle
     runnerJob: MRunnerJob
     resultPayload: VODHLSTranscodingSuccess
   }) {
+
     const { runnerJob, resultPayload } = options
     const privatePayload = runnerJob.privatePayload as RunnerJobVODHLSTranscodingPrivatePayload
 
     const video = await loadTranscodingRunnerVideo(runnerJob, this.lTags)
     if (!video) return
 
-    const videoFilePath = resultPayload.videoFile as string
-    const resolutionPlaylistFilePath = resultPayload.resolutionPlaylistFile as string
-
+    const videoFilePath = resultPayload.videoFile[0] as string
     const videoFile = await buildNewFile({ path: videoFilePath, mode: 'hls' })
     const newVideoFilePath = join(dirname(videoFilePath), videoFile.filename)
-//     await move(videoFilePath, newVideoFilePath)
+    const resolutionPlaylistFilePath = resultPayload.resolutionPlaylistFile as string
 
-    console.log("🏐️🏐️🏐️🏐️🏐️", videoFilePath, newVideoFilePath);
-    // what is the name of the new temp directory
+    let videoFile1: MVideoFile, newVideoFilePath1, newResolutionPlaylistFilePath;
+    let i=0;
+    for(let file of resultPayload.videoFile as string){
+         if(!videoFile1){
+            videoFile1 = videoFile
+            newVideoFilePath1 = newVideoFilePath
 
-        moveFiles(videoFilePath, newVideoFilePath);
-    const resolutionPlaylistFilename = getHlsResolutionPlaylistFilename(videoFile.filename)
-    const newResolutionPlaylistFilePath = join(dirname(resolutionPlaylistFilePath), resolutionPlaylistFilename)
-    await move(resolutionPlaylistFilePath, newResolutionPlaylistFilePath)
-
-    await renameVideoFileInPlaylist(newResolutionPlaylistFilePath, videoFile.filename)
+             const resolutionPlaylistFilename = getHlsResolutionPlaylistFilename(videoFile1.filename)
+             newResolutionPlaylistFilePath = join(dirname(resolutionPlaylistFilePath), resolutionPlaylistFilename)
+             await move(resolutionPlaylistFilePath, newResolutionPlaylistFilePath)
+            }
 
 
-//     console.log("🥛🥛🥛🥛🥛🥛",video, videoFile)
+          let newPath = addExt(newVideoFilePath, i);
+          moveFiles(file, newPath);
+          await renameVideoFileInPlaylist(newResolutionPlaylistFilePath, addExt(videoFile.filename, i) )
+          i++;
+    }
+
     await onHLSVideoFileTranscoding({
       video,
       videoFile,
       m3u8OutputPath: newResolutionPlaylistFilePath,
-      videoOutputPath: newVideoFilePath
+      videoOutputPath: newVideoFilePath1
     })
 
     await onTranscodingEnded({ isNewVideo: privatePayload.isNewVideo, moveVideoToNextState: true, video })
