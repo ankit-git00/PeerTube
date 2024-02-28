@@ -203,8 +203,6 @@ export class FFmpegVOD {
     const command = this.commandWrapper.getCommand()
 
     const videoPath = this.getHLSVideoPath(options)
-        // console.log("😂😂😂😂😂😂😂😂😂😂🌥️😂😂😂😂😂", videoPath);
-
 
     if (options.copyCodecs) presetCopy(this.commandWrapper)
     else if (options.resolution === VideoResolution.H_NOVIDEO) presetOnlyAudio(this.commandWrapper)
@@ -256,12 +254,6 @@ export class FFmpegVOD {
   }
 
   private getHLSVideoPath (options: HLSTranscodeOptions | HLSFromTSTranscodeOptions) {
-
-    console.log(" 🫚🫚🫚🫚");
-    console.log(options.hlsPlaylist.videoFilename);
-    console.log("options", options);
-
-
     return `${dirname(options.outputPath)}/${options.hlsPlaylist.videoFilename}`
   }
 }

@@ -12,8 +12,6 @@ export class PlaylistFetcher {
     const playlistPromise = this.loadPlaylistInfo(playlistId)
     const playlistElementsPromise = this.loadPlaylistElements(playlistId)
 
-        console.log("🍔🍔🍔🍔", playlistPromise);
-
     let playlistResponse: Response
     let isResponseOk: boolean
 

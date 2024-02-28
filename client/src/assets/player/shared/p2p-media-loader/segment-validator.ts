@@ -29,22 +29,12 @@ export class SegmentValidator {
 
   async validate (segment: Segment, _method: string, _peerId: string, retry = 1) {
 
-                  console.log("🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑", "basketss");
-
     if (this.destroyed) return
 
     this.loadSha256SegmentsPromiseIfNeeded()
 
     const filename = basename(removeQueryParams(segment.url))
-
-    console.log("filename", filename);
-    console.log("segment", segment);
-
-
     const segmentValue = (await this.segmentJSONPromise)[filename]
-    console.log("segment value", segmentValue);
-    console.log("this.segmentJSONPromise", this.segmentJSONPromise);
-
     if (!segmentValue && retry > maxRetries) {
       throw new Error(`Unknown segment name ${filename} in segment validator`)
     }
@@ -108,7 +98,6 @@ export class SegmentValidator {
       else if (this.options.requiresUserAuth) headers = { Authorization: this.options.authorizationHeader() }
     }
 
-    console.log("segmentsSha256Url", this.options.segmentsSha256Url);
     return fetch(this.options.segmentsSha256Url, { headers })
       .then(res => res.json() as Promise<SegmentsJSON>)
       .catch(err => {
